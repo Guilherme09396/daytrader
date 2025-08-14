@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DayTarde — Login / Cadastro</title>
+  <link rel="stylesheet" href="login.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCdnZWVKETIQvK2G6ktAgKzMazj5C4Lv4",
+      authDomain: "daytrade-20cd5.firebaseapp.com",
+      projectId: "daytrade-20cd5",
+      storageBucket: "daytrade-20cd5.firebasestorage.app",
+      messagingSenderId: "717395180785",
+      appId: "1:717395180785:web:790bf1087a0883a5cb7d50",
+      //measurementId: "G-M3T0YV7Z7K"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+
+<body>
+  <div class="login-wrapper">
+    <div class="login-box">
+      <h1>DayTarde</h1>
+
+      <div class="form-toggle">
+        <button id="login-btn" class="active">Login</button>
+        <button id="signup-btn">Cadastro</button>
+      </div>
+
+      <div class="form-slider">
+        <form id="loginForm" class="form-box">
+          <h2>Login</h2>
+          <input type="email" id="loginEmail" placeholder="Email" required>
+          <input type="password" id="loginPassword" placeholder="Senha" required>
+          <button type="submit">Entrar</button>
+          <p id="loginError" class="error"></p>
+        </form>
+
+        <form id="signupForm" class="form-box">
+          <h2>Cadastro</h2>
+          <input type="email" id="signupEmail" placeholder="Email" required>
+          <input type="password" id="signupPassword" placeholder="Senha" required>
+          <button type="submit">Cadastrar</button>
+          <p id="signupError" class="error"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="login.js" defer></script>
+</body>
+</html>

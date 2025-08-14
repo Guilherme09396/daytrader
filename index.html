@@ -10,6 +10,12 @@
   <meta name="theme-color" content="#ff0000">
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 </head>
 
 <body>
@@ -29,6 +35,7 @@
           Importar CSV
           <input type="file" id="importCSV" accept=".csv" style="display: none;">
         </label>
+        <button id="logoutBtn" class="btn danger" style="margin-left:10px;">Logout</button>
       </div>
     </header>
 
@@ -82,12 +89,6 @@
         <div class="card card-filters">
           <h3>Filtros</h3>
           <div class="filters">
-            <label>Data inicial
-              <input type="date" id="filtro-data-inicio">
-            </label>
-            <label>Data final
-              <input type="date" id="filtro-data-fim">
-            </label>
             <label>Período
               <div class="date-filter">
                 <select id="filtro-periodo">
@@ -207,6 +208,23 @@
   </div>
 
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCdnZWVKETIQvK2G6ktAgKzMazj5C4Lv4",
+      authDomain: "daytrade-20cd5.firebaseapp.com",
+      projectId: "daytrade-20cd5",
+      storageBucket: "daytrade-20cd5.firebasestorage.app",
+      messagingSenderId: "717395180785",
+      appId: "1:717395180785:web:790bf1087a0883a5cb7d50",
+      //measurementId: "G-M3T0YV7Z7K"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <script src="script.js" defer></script>
+
+  <script>
+
+    // Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
         .then(() => console.log("✅ Service Worker registrado!"))
@@ -214,8 +232,6 @@
     }
   </script>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-  <script src="script.js" defer></script>
 </body>
 
 </html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day Trade Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Modal de login -->
+  <div id="loginModal" class="modal">
+    <div class="modal-content">
+      <h2>Login</h2>
+      <input type="email" id="loginEmail" placeholder="E-mail">
+      <input type="password" id="loginPassword" placeholder="Senha">
+      <button id="btnLogin" class="btn">Entrar</button>
+      <p>Não tem conta? <span id="showRegister">Cadastre-se</span></p>
+    </div>
+  </div>
+
+  <!-- Modal de registro -->
+  <div id="registerModal" class="modal">
+    <div class="modal-content">
+      <h2>Cadastro</h2>
+      <input type="email" id="registerEmail" placeholder="E-mail">
+      <input type="password" id="registerPassword" placeholder="Senha">
+      <button id="btnRegister" class="btn">Cadastrar</button>
+      <p>Já tem conta? <span id="showLogin">Login</span></p>
+    </div>
+  </div>
+
+  <!-- Conteúdo principal -->
+  <div id="mainContent" style="display:none;">
+    <h1>Day Trade Dashboard</h1>
+
+    <form id="entryForm">
+      <input type="number" id="valor" placeholder="Valor" value="5">
+      <input type="number" id="payout" placeholder="Payout" value="87">
+      <select id="status">
+        <option value="vitoria">Vitória</option>
+        <option value="derrota">Derrota</option>
+      </select>
+      <input type="text" id="asset" placeholder="Ativo">
+      <input type="text" id="obs" placeholder="Observação">
+      <button type="submit" class="btn">Salvar operação</button>
+      <button type="button" id="resetForm" class="btn ghost">Limpar formulário</button>
+    </form>
+
+    <button id="clearAll" class="btn danger">Limpar tudo</button>
+
+    <div class="stats">
+      <div id="stat-profit"></div>
+      <div id="stat-winrate"></div>
+      <div id="stat-total"></div>
+      <div id="stat-avg"></div>
+    </div>
+
+    <table id="opsTable">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Hora</th>
+          <th>Ativo</th>
+          <th>Valor</th>
+          <th>Payout</th>
+          <th>Status</th>
+          <th>Resultado</th>
+          <th>Obs</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <canvas id="chart-profit"></canvas>
+    <canvas id="chart-wdl"></canvas>
+    <canvas id="chart-shift"></canvas>
+
+    <input type="file" id="importCSV" accept=".csv">
+    <button id="exportAll" class="btn">Exportar tudo</button>
+    <button id="exportFiltered" class="btn">Exportar filtradas</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
