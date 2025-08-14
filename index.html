@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DayTarde — Painel de Operações</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
@@ -15,7 +15,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 </head>
 
 <body>
@@ -31,11 +30,11 @@
       <div class="header-actions">
         <button id="exportAll" class="btn ghost">Exportar → CSV</button>
         <button id="clearAll" class="btn danger">Limpar tudo</button>
-        <label class="btn primary" style="margin-left: 10px; cursor: pointer;">
+        <label class="btn primary">
           Importar CSV
           <input type="file" id="importCSV" accept=".csv" style="display: none;">
         </label>
-        <button id="logoutBtn" class="btn danger" style="margin-left:10px;">Logout</button>
+        <button id="logoutBtn" class="btn danger">Logout</button>
       </div>
     </header>
 
@@ -215,23 +214,20 @@
       storageBucket: "daytrade-20cd5.firebasestorage.app",
       messagingSenderId: "717395180785",
       appId: "1:717395180785:web:790bf1087a0883a5cb7d50",
-      //measurementId: "G-M3T0YV7Z7K"
     };
     firebase.initializeApp(firebaseConfig);
   </script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
   <script src="script.js" defer></script>
 
   <script>
-
-    // Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
         .then(() => console.log("✅ Service Worker registrado!"))
         .catch(err => console.log("❌ Erro no Service Worker:", err));
     }
   </script>
-
 </body>
 
 </html>
