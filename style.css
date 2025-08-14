@@ -69,3 +69,10 @@ input::placeholder{color:rgba(230,238,246,0.4)}
   input, select { font-size: 14px; padding: 8px; }
   button { font-size: 14px; padding: 10px; }
 }
+
+/* Esconde o card de gráficos em telas de celular */
+@media (max-width: 600px) {
+  .card-charts {
+    display: none !important;
+  }
+}
