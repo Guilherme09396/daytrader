@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DayTarde — Painel de Operações</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff0000">
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -86,14 +89,22 @@
               <input type="date" id="filtro-data-fim">
             </label>
             <label>Período
-              <select id="filtro-periodo">
-                <option value="30">Últimos 30 dias</option>
-                <option value="7">Últimos 7 dias</option>
-                <option value="hoje">Hoje</option>
-                <option value="mes">Este mês</option>
-                <option value="all">Tudo</option>
-              </select>
+              <div class="date-filter">
+                <select id="filtro-periodo">
+                  <option value="hoje">Hoje</option>
+                  <option value="7">Últimos 7 dias</option>
+                  <option value="30">Últimos 30 dias</option>
+                  <option value="mes">Este mês</option>
+                  <option value="all">Tudo</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+                <div id="customDateInputs" style="display:none; margin-top:5px;">
+                  <input type="date" id="dataInicio" /> até
+                  <input type="date" id="dataFim" />
+                </div>
+              </div>
             </label>
+
             <label>Turno
               <select id="filtro-turno">
                 <option value="all">Todos</option>
@@ -194,6 +205,14 @@
       <small>DayTarde • Painel local • Dados no storage do navegador</small>
     </footer>
   </div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(() => console.log("✅ Service Worker registrado!"))
+        .catch(err => console.log("❌ Erro no Service Worker:", err));
+    }
+  </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
   <script src="script.js" defer></script>
