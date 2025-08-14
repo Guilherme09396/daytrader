@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DayTarde — Painel de Operações</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">DT</div>
+        <div>
+          <h1>DayTarde</h1>
+          <p class="tag">Registro e análise de operações — estilo profissional</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="exportAll" class="btn ghost">Exportar → CSV</button>
+        <button id="clearAll" class="btn danger">Limpar tudo</button>
+        <label class="btn primary" style="margin-left: 10px; cursor: pointer;">
+          Importar CSV
+          <input type="file" id="importCSV" accept=".csv" style="display: none;">
+        </label>
+      </div>
+    </header>
+
+    <main class="grid">
+      <aside class="panel">
+        <div class="card card-form">
+          <h2>Nova Operação</h2>
+          <form id="entryForm" autocomplete="off">
+            <div class="row">
+              <label>Valor (R$)
+                <input type="number" id="valor" min="0" step="0.01" value="5" required>
+              </label>
+              <label>Payout (%)
+                <input type="number" id="payout" min="0" step="0.1" value="87" required>
+              </label>
+            </div>
+
+            <div class="row">
+              <label>Status
+                <select id="status" required>
+                  <option value="vitoria">Vitória</option>
+                  <option value="derrota">Derrota</option>
+                  <option value="empate">Empate</option>
+                </select>
+              </label>
+              <label>Ativo
+                <input id="asset" placeholder="ex: EURUSD" maxlength="20">
+              </label>
+            </div>
+
+            <div class="row">
+              <label>Data
+                <input type="date" id="data" required>
+              </label>
+              <label>Hora
+                <input type="time" id="hora" required>
+              </label>
+            </div>
+
+            <label>Observação
+              <input id="obs" placeholder="opcional">
+            </label>
+
+            <div class="actions">
+              <button class="btn primary" id="saveBtn" type="submit">Salvar</button>
+              <button class="btn ghost" id="resetForm" type="button">Limpar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card card-filters">
+          <h3>Filtros</h3>
+          <div class="filters">
+            <label>Data inicial
+              <input type="date" id="filtro-data-inicio">
+            </label>
+            <label>Data final
+              <input type="date" id="filtro-data-fim">
+            </label>
+            <label>Período
+              <select id="filtro-periodo">
+                <option value="30">Últimos 30 dias</option>
+                <option value="7">Últimos 7 dias</option>
+                <option value="hoje">Hoje</option>
+                <option value="mes">Este mês</option>
+                <option value="all">Tudo</option>
+              </select>
+            </label>
+            <label>Turno
+              <select id="filtro-turno">
+                <option value="all">Todos</option>
+                <option value="manha">Manhã (06:00–11:59)</option>
+                <option value="tarde">Tarde (12:00–17:59)</option>
+                <option value="noite">Noite (18:00–23:59)</option>
+                <option value="madrugada">Madrugada (00:00–05:59)</option>
+              </select>
+            </label>
+            <label>Status
+              <select id="filtro-status">
+                <option value="all">Todos</option>
+                <option value="vitoria">Vitória</option>
+                <option value="derrota">Derrota</option>
+                <option value="empate">Empate</option>
+              </select>
+            </label>
+            <label>Buscar (valor, ativo, obs, turno)
+              <input type="text" id="inputFilter" placeholder="Buscar por ativo, valor, obs ou turno..." />
+            </label>
+            <div class="filter-actions">
+              <button id="applyFilter" class="btn">Aplicar</button>
+              <button id="resetFilter" class="btn ghost">Limpar</button>
+              <button id="exportFiltered" class="btn">Exportar filtrados</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="content">
+        <div class="cards-row">
+          <div class="stat card">
+            <small>Total Lucro</small>
+            <strong id="stat-profit">R$ 0,00</strong>
+          </div>
+          <div class="stat card">
+            <small>Taxa de acerto</small>
+            <strong id="stat-winrate">0%</strong>
+          </div>
+          <div class="stat card">
+            <small>Total Trades</small>
+            <strong id="stat-total">0</strong>
+          </div>
+          <div class="stat card">
+            <small>Saldo Médio</small>
+            <strong id="stat-avg">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <div class="card card-charts">
+          <div class="charts-grid">
+            <div class="chart-box">
+              <h4>Lucro por dia</h4>
+              <canvas id="chart-profit"></canvas>
+            </div>
+            <div class="chart-box">
+              <h4>Vitórias / Derrotas</h4>
+              <canvas id="chart-wdl"></canvas>
+            </div>
+            <div class="chart-box">
+              <h4>Desempenho por turno</h4>
+              <canvas id="chart-shift"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-table">
+          <div class="table-header">
+            <h3>Operações</h3>
+            <div class="table-actions">
+              <input id="quick-filter" placeholder="Filtrar tabela (valor/ativo/obs/turno)" />
+              <button id="btn-clear-search" class="btn ghost">×</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="opsTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Hora</th>
+                  <th>Ativo</th>
+                  <th>Valor</th>
+                  <th>Payout</th>
+                  <th>Status</th>
+                  <th>Resultado</th>
+                  <th>Obs</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <small>DayTarde • Painel local • Dados no storage do navegador</small>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <script src="script.js" defer></script>
+</body>
+
+</html>
