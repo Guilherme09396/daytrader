@@ -343,10 +343,21 @@ document.getElementById("resetFilter").addEventListener("click",()=>{
 exportAllBtn.addEventListener("click",()=>exportCSV(false));
 exportFilteredBtn.addEventListener("click",()=>exportCSV(true));
 
-document.getElementById("clearAll").addEventListener("click", ()=>{
+document.getElementById("clearAll").addEventListener("click", async () => {
   if(confirm("Tem certeza que deseja apagar TODAS as operações?")){
+    // Limpa IndexedDB
     const tx = dbInstance.transaction("operations","readwrite");
-    tx.objectStore("operations").clear().onsuccess=()=>carregarOperacoes();
+    tx.objectStore("operations").clear().onsuccess = () => carregarOperacoes();
+
+    // Limpa Firebase
+    const user = auth.currentUser;
+    if(user){
+      const snapshot = await db.collection("operations").where("userId","==",user.uid).get();
+      const batch = db.batch();
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      carregarOperacoesFirebase();
+    }
   }
 });
 
