@@ -76,3 +76,87 @@ input::placeholder{color:rgba(230,238,246,0.4)}
     display: none !important;
   }
 }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  gap: 5px;
+}
+
+.pagination button {
+  background-color: #f3f4f6; /* cinza claro */
+  border: 1px solid #d1d5db; /* borda suave */
+  color: #374151; /* texto escuro */
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.pagination button:hover {
+  background-color: #e5e7eb; /* cinza um pouco mais escuro no hover */
+}
+
+.pagination button.active {
+  background-color: #3b82f6; /* azul */
+  color: #fff;
+  border-color: #2563eb;
+  font-weight: 600;
+}
+
+/* Mantém altura mínima da tabela de operações */
+#opsTable {
+  display: block;
+  min-height: 400px; /* ajuste conforme necessário */
+  overflow-y: auto;
+}
+
+/* Cabeçalho fixo opcional para scroll */
+#opsTable thead {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+#opsTable tbody {
+  display: block;
+  width: 100%;
+}
+
+/* Linha da tabela */
+#opsTable tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Paginação */
+.pagination {
+  margin-top: 10px;
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.pagination button {
+  background-color: #1e293b; /* cor do fundo escuro */
+  color: #ffffff;           /* texto branco */
+  border: 1px solid #3b82f6; 
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination button:hover {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.pagination button.active {
+  background-color: #3b82f6;
+  color: #ffffff;
+  font-weight: bold;
+}

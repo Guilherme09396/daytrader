@@ -31,6 +31,8 @@ const importCSVInput = document.getElementById("importCSV");
 
 let chartProfit, chartWDL, chartShift;
 let dbInstance;
+let currentPage = 1;
+const rowsPerPage = 10; // você pode alterar o número de linhas por página
 let operations = [];
 
 // ========================
@@ -44,9 +46,16 @@ function calcularResultado(valor, payout, status) {
 
 function preencherDataHora() {
   const agora = new Date();
-  dataInput.value = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
-  horaInput.value = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  const hora = String(agora.getHours()).padStart(2, '0');
+  const min = String(agora.getMinutes()).padStart(2, '0');
+
+  dataInput.value = `${ano}-${mes}-${dia}`;
+  horaInput.value = `${hora}:${min}`;
 }
+
 
 function resetForm() {
   valorInput.value = 5;
@@ -83,7 +92,7 @@ const db = firebase.firestore();
 
 // Só permite acesso se usuário estiver logado
 auth.onAuthStateChanged(user => {
-  if(!user){
+  if (!user) {
     window.location.href = 'login.html';
   } else {
     carregarOperacoesFirebase();
@@ -93,7 +102,7 @@ auth.onAuthStateChanged(user => {
 function salvarOperacao(op) {
   const user = auth.currentUser;
   if (!user) return alert("Faça login primeiro");
-  
+
   db.collection("operations").add({
     ...op,
     userId: user.uid,
@@ -121,30 +130,34 @@ function applyFilters() {
     const agora = new Date();
     const periodo = filtroPeriodoSelect.value;
 
-    if (periodo === "7" && ((agora - dataOp)/(1000*60*60*24))>7) return false;
-    if (periodo === "30" && ((agora - dataOp)/(1000*60*60*24))>30) return false;
+    if (periodo === "7" && ((agora - dataOp) / (1000 * 60 * 60 * 24)) > 7) return false;
+    if (periodo === "30" && ((agora - dataOp) / (1000 * 60 * 60 * 24)) > 30) return false;
     if (periodo === "hoje" && dataOp.toDateString() !== agora.toDateString()) return false;
-    if (periodo === "mes" && (dataOp.getMonth()!==agora.getMonth() || dataOp.getFullYear()!==agora.getFullYear())) return false;
-    if (periodo==="custom"){
-      const inicio = dataInicioInput.value ? new Date(dataInicioInput.value) : null;
-      const fim = dataFimInput.value ? new Date(dataFimInput.value) : null;
-      if (inicio && dataOp<inicio) return false;
-      if (fim && dataOp>fim) return false;
+    if (periodo === "mes" && (dataOp.getMonth() !== agora.getMonth() || dataOp.getFullYear() !== agora.getFullYear())) return false;
+    if (periodo === "custom") {
+      const inicio = dataInicioInput.value ? new Date(dataInicioInput.value + "T00:00:00") : null;
+      const fim = dataFimInput.value ? new Date(dataFimInput.value + "T23:59:59") : null;
+      if (inicio && dataOp < inicio) return false;
+      if (fim && dataOp > fim) return false;
     }
 
     const horaNum = parseInt(op.hora.split(":")[0]);
-    if (filtroTurno.value==="manha" && (horaNum<6 || horaNum>=12)) return false;
-    if (filtroTurno.value==="tarde" && (horaNum<12 || horaNum>=18)) return false;
-    if (filtroTurno.value==="noite" && (horaNum<18 || horaNum>=24)) return false;
-    if (filtroTurno.value==="madrugada" && (horaNum<0 || horaNum>=6)) return false;
-    if (filtroStatus.value!=="all" && op.status!==filtroStatus.value) return false;
+    if (filtroTurno.value === "manha" && (horaNum < 6 || horaNum >= 12)) return false;
+    if (filtroTurno.value === "tarde" && (horaNum < 12 || horaNum >= 18)) return false;
+    if (filtroTurno.value === "noite" && (horaNum < 18 || horaNum >= 24)) return false;
+    if (filtroTurno.value === "madrugada" && (horaNum < 0 || horaNum >= 6)) return false;
+    if (filtroStatus.value !== "all" && op.status !== filtroStatus.value) return false;
 
     const search = inputFilter.value.toLowerCase();
-    if (search){
-      const turno = horaNum<6?"madrugada":horaNum<12?"manha":horaNum<18?"tarde":"noite";
-      if (!(op.valor.toString().includes(search) || (op.ativo && op.ativo.toLowerCase().includes(search)) || (op.obs && op.obs.toLowerCase().includes(search)) || turno.includes(search)))
+    if (search) {
+      const turno = horaNum < 6 ? "madrugada" : horaNum < 12 ? "manha" : horaNum < 18 ? "tarde" : "noite";
+      if (!(op.valor.toString().includes(search) ||
+        (op.ativo && op.ativo.toLowerCase().includes(search)) ||
+        (op.obs && op.obs.toLowerCase().includes(search)) ||
+        turno.includes(search)))
         return false;
     }
+
     return true;
   });
 }
@@ -152,29 +165,58 @@ function applyFilters() {
 // ========================
 // TABELA
 // ========================
-function renderTable(){
+function renderTable() {
   const tbody = document.querySelector("#opsTable tbody");
   tbody.innerHTML = "";
-  const ops = applyFilters();
-  ops.forEach(op=>{
-    const corStatus = op.status.toLowerCase() == 'derrota' ? 'red' : 'green'
+
+  const ops = applyFilters().sort((a, b) => new Date(b.data + "T" + b.hora) - new Date(a.data + "T" + a.hora));
+
+  const totalPages = Math.ceil(ops.length / rowsPerPage);
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+
+  const start = (currentPage - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pagedOps = ops.slice(start, end);
+
+  pagedOps.forEach(op => {
+    const corStatus = op.status.toLowerCase() == 'derrota' ? 'red' : 'green';
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${op.data}</td>
       <td>${op.hora}</td>
-      <td>${op.ativo||""}</td>
+      <td>${op.ativo || ""}</td>
       <td>R$ ${op.valor.toFixed(2)}</td>
       <td>${op.payout}%</td>
       <td style='color: ${corStatus}'>${op.status}</td>
       <td>R$ ${op.resultado.toFixed(2)}</td>
-      <td>${op.obs||""}</td>
+      <td>${op.obs || ""}</td>
       <td><button class="btn ghost btn-delete">×</button></td>
     `;
-    tr.querySelector(".btn-delete").addEventListener("click", ()=> deletarOperacao(op.id));
+    tr.querySelector(".btn-delete").addEventListener("click", () => deletarOperacao(op.id));
     tbody.appendChild(tr);
   });
+
+  renderPagination(totalPages);
   atualizarTudo();
 }
+
+function renderPagination(totalPages) {
+  const container = document.getElementById("pagination");
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    btn.className = i === currentPage ? "active" : "";
+    btn.addEventListener("click", () => {
+      currentPage = i;
+      renderTable();
+    });
+    container.appendChild(btn);
+  }
+}
+
 
 // ========================
 // ESTATÍSTICAS / GRÁFICOS
@@ -182,12 +224,12 @@ function renderTable(){
 function atualizarEstatisticas() {
   const ops = applyFilters();
   const total = ops.length;
-  const lucro = ops.reduce((acc,o)=>acc+o.resultado,0);
-  const wins = ops.filter(o=>o.status==="vitoria").length;
-  const avg = total ? ops.reduce((acc,o)=>acc+o.valor,0)/total : 0;
+  const lucro = ops.reduce((acc, o) => acc + o.resultado, 0);
+  const wins = ops.filter(o => o.status === "vitoria").length;
+  const avg = total ? ops.reduce((acc, o) => acc + o.valor, 0) / total : 0;
 
   statProfit.textContent = `R$ ${lucro.toFixed(2)}`;
-  statWinrate.textContent = total?`${((wins/total)*100).toFixed(1)}%`:"0%";
+  statWinrate.textContent = total ? `${((wins / total) * 100).toFixed(1)}%` : "0%";
   statTotal.textContent = total;
   statAvg.textContent = `R$ ${avg.toFixed(2)}`;
 }
@@ -205,66 +247,66 @@ function atualizarGraficoLucro() {
   const labels = Object.keys(lucroPorDia).sort();
   const data = labels.map(d => lucroPorDia[d]);
 
-  if(chartProfit) chartProfit.destroy();
+  if (chartProfit) chartProfit.destroy();
   chartProfit = new Chart(ctx, {
     type: "bar",
     data: {
       labels,
       datasets: [{ label: "Lucro por dia", data, backgroundColor: "#4ade80" }]
     },
-    options: { responsive:true, plugins:{legend:{display:false}} }
+    options: { responsive: true, plugins: { legend: { display: false } } }
   });
 }
 function atualizarGraficoWDL() {
   const ctx = document.getElementById("chart-wdl").getContext("2d");
   const ops = applyFilters();
-  const wins = ops.filter(o=>o.status==="vitoria").length;
-  const losses = ops.filter(o=>o.status==="derrota").length;
-  const draws = ops.filter(o=>o.status==="empate").length;
+  const wins = ops.filter(o => o.status === "vitoria").length;
+  const losses = ops.filter(o => o.status === "derrota").length;
+  const draws = ops.filter(o => o.status === "empate").length;
 
-  if(chartWDL) chartWDL.destroy();
+  if (chartWDL) chartWDL.destroy();
   chartWDL = new Chart(ctx, {
     type: "doughnut",
     data: {
       labels: ["Vitórias", "Derrotas", "Empates"],
-      datasets:[{
+      datasets: [{
         data: [wins, losses, draws],
-        backgroundColor: ["#4ade80","#f87171","#facc15"]
+        backgroundColor: ["#4ade80", "#f87171", "#facc15"]
       }]
     },
-    options: { responsive:true }
+    options: { responsive: true }
   });
 }
 
 function atualizarGraficoTurno() {
   const ctx = document.getElementById("chart-shift").getContext("2d");
   const ops = applyFilters();
-  const turnos = { madrugada:0, manha:0, tarde:0, noite:0 };
+  const turnos = { madrugada: 0, manha: 0, tarde: 0, noite: 0 };
 
   ops.forEach(op => {
     const h = parseInt(op.hora.split(":")[0]);
-    if(h<6) turnos.madrugada += op.resultado;
-    else if(h<12) turnos.manha += op.resultado;
-    else if(h<18) turnos.tarde += op.resultado;
+    if (h < 6) turnos.madrugada += op.resultado;
+    else if (h < 12) turnos.manha += op.resultado;
+    else if (h < 18) turnos.tarde += op.resultado;
     else turnos.noite += op.resultado;
   });
 
-  if(chartShift) chartShift.destroy();
+  if (chartShift) chartShift.destroy();
   chartShift = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: ["Madrugada","Manhã","Tarde","Noite"],
-      datasets:[{
+      labels: ["Madrugada", "Manhã", "Tarde", "Noite"],
+      datasets: [{
         label: "Lucro por turno",
         data: Object.values(turnos),
         backgroundColor: "#60a5fa"
       }]
     },
-    options: { responsive:true, plugins:{legend:{display:false}} }
+    options: { responsive: true, plugins: { legend: { display: false } } }
   });
 }
 
-function atualizarTudo(){
+function atualizarTudo() {
   atualizarEstatisticas();
   atualizarGraficoLucro();
   atualizarGraficoWDL();
@@ -275,21 +317,21 @@ function atualizarTudo(){
 // CARREGAR OPERAÇÕES
 // ========================
 function carregarOperacoes() {
-  if(!dbInstance) return;
-  const tx = dbInstance.transaction("operations","readonly");
+  if (!dbInstance) return;
+  const tx = dbInstance.transaction("operations", "readonly");
   const store = tx.objectStore("operations");
-  store.getAll().onsuccess = e=>{
+  store.getAll().onsuccess = e => {
     operations = e.target.result || [];
     renderTable();
   };
 }
 
-function carregarOperacoesFirebase(){
+function carregarOperacoesFirebase() {
   const user = auth.currentUser;
-  if(!user) return;
-  db.collection("operations").where("userId","==",user.uid).orderBy("createdAt","desc").get()
-    .then(snapshot=>{
-      operations = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+  if (!user) return;
+  db.collection("operations").where("userId", "==", user.uid).orderBy("createdAt", "desc").get()
+    .then(snapshot => {
+      operations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       renderTable();
     });
 }
@@ -297,16 +339,16 @@ function carregarOperacoesFirebase(){
 // ========================
 // EXPORT CSV
 // ========================
-function exportCSV(filtered=false){
-  let csv="Data,Hora,Ativo,Valor,Payout,Status,Resultado,Obs\n";
+function exportCSV(filtered = false) {
+  let csv = "Data,Hora,Ativo,Valor,Payout,Status,Resultado,Obs\n";
   const ops = filtered ? applyFilters() : operations;
-  ops.forEach(op=>{
-    csv+=`${op.data},${op.hora},${op.ativo||""},${op.valor},${op.payout},${op.status},${op.resultado.toFixed(2)},${op.obs||""}\n`;
+  ops.forEach(op => {
+    csv += `${op.data},${op.hora},${op.ativo || ""},${op.valor},${op.payout},${op.status},${op.resultado.toFixed(2)},${op.obs || ""}\n`;
   });
-  const blob = new Blob([csv],{type:"text/csv"});
+  const blob = new Blob([csv], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = filtered ? "operacoes_filtradas.csv":"operacoes.csv";
+  a.download = filtered ? "operacoes_filtradas.csv" : "operacoes.csv";
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -314,45 +356,46 @@ function exportCSV(filtered=false){
 // ========================
 // EVENTOS
 // ========================
-form.addEventListener("submit", e=>{
+form.addEventListener("submit", e => {
   e.preventDefault();
-  const valor=parseFloat(valorInput.value);
-  const payout=parseFloat(payoutInput.value);
-  const status=statusInput.value;
-  const data=dataInput.value;
-  const hora=horaInput.value;
-  const ativo=assetInput.value;
-  const obs=obsInput.value;
-  const resultado=calcularResultado(valor,payout,status);
-  salvarOperacao({valor,payout,status,data,hora,ativo,obs,resultado});
+  const valor = parseFloat(valorInput.value);
+  const payout = parseFloat(payoutInput.value);
+  const status = statusInput.value;
+  const data = dataInput.value;
+  const hora = horaInput.value;
+  const ativo = assetInput.value;
+  const obs = obsInput.value;
+  const resultado = calcularResultado(valor, payout, status);
+
+  salvarOperacao({ valor, payout, status, data, hora, ativo, obs, resultado });
   resetForm();
 });
 
-document.getElementById("resetForm").addEventListener("click",resetForm);
-document.getElementById("applyFilter").addEventListener("click",renderTable);
-document.getElementById("resetFilter").addEventListener("click",()=>{
-  filtroPeriodoSelect.value="30";
-  filtroTurno.value="all";
-  filtroStatus.value="all";
-  inputFilter.value="";
-  dataInicioInput.value="";
-  dataFimInput.value="";
+document.getElementById("resetForm").addEventListener("click", resetForm);
+document.getElementById("applyFilter").addEventListener("click", renderTable);
+document.getElementById("resetFilter").addEventListener("click", () => {
+  filtroPeriodoSelect.value = "30";
+  filtroTurno.value = "all";
+  filtroStatus.value = "all";
+  inputFilter.value = "";
+  dataInicioInput.value = "";
+  dataFimInput.value = "";
   renderTable();
 });
 
-exportAllBtn.addEventListener("click",()=>exportCSV(false));
-exportFilteredBtn.addEventListener("click",()=>exportCSV(true));
+exportAllBtn.addEventListener("click", () => exportCSV(false));
+exportFilteredBtn.addEventListener("click", () => exportCSV(true));
 
 document.getElementById("clearAll").addEventListener("click", async () => {
-  if(confirm("Tem certeza que deseja apagar TODAS as operações?")){
+  if (confirm("Tem certeza que deseja apagar TODAS as operações?")) {
     // Limpa IndexedDB
-    const tx = dbInstance.transaction("operations","readwrite");
+    const tx = dbInstance.transaction("operations", "readwrite");
     tx.objectStore("operations").clear().onsuccess = () => carregarOperacoes();
 
     // Limpa Firebase
     const user = auth.currentUser;
-    if(user){
-      const snapshot = await db.collection("operations").where("userId","==",user.uid).get();
+    if (user) {
+      const snapshot = await db.collection("operations").where("userId", "==", user.uid).get();
       const batch = db.batch();
       snapshot.docs.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
@@ -361,16 +404,16 @@ document.getElementById("clearAll").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("logoutBtn").addEventListener("click", ()=>{
-  auth.signOut().then(()=>{
-    window.location.href='login.html';
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  auth.signOut().then(() => {
+    window.location.href = 'login.html';
   });
 });
 
 // ========================
 // INICIALIZAÇÃO
 // ========================
-window.addEventListener("DOMContentLoaded",()=>{
+window.addEventListener("DOMContentLoaded", () => {
   initDB();
   preencherDataHora();
 });
@@ -385,11 +428,10 @@ importCSVInput.addEventListener("change", async (e) => {
 
   const text = await file.text();
   const lines = text.split("\n").filter(l => l.trim() !== "");
-  // Pula o cabeçalho
+
   for (let i = 1; i < lines.length; i++) {
     const [data, hora, ativo, valor, payout, status, resultado, obs] = lines[i].split(",");
-
-    if(!data || !hora || !valor || !payout || !status) continue;
+    if (!data || !hora || !valor || !payout || !status) continue;
 
     const op = {
       data: data.trim(),
@@ -402,17 +444,15 @@ importCSVInput.addEventListener("change", async (e) => {
       obs: obs ? obs.trim() : ""
     };
 
-    // Salva no Firebase
     salvarOperacao(op);
 
-    // Salva no IndexedDB local
-    if(dbInstance){
-      const tx = dbInstance.transaction("operations","readwrite");
+    if (dbInstance) {
+      const tx = dbInstance.transaction("operations", "readwrite");
       tx.objectStore("operations").add(op);
     }
   }
 
-  importCSVInput.value = ""; // limpa input
+  importCSVInput.value = "";
   carregarOperacoes();
   alert("CSV importado com sucesso!");
 });
