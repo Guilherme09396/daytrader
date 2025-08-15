@@ -160,3 +160,25 @@ input::placeholder{color:rgba(230,238,246,0.4)}
   color: #ffffff;
   font-weight: bold;
 }
+
+/* Reduz a largura e altura do carrossel */
+.swiper {
+  max-width: 800px; /* pode ajustar para 350px, 300px, etc. */
+  margin: 0 auto;
+}
+
+/* Slide mais compacto */
+.swiper-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+/* Gráfico menor */
+.chart-box canvas {
+  max-width: 100%;
+  height: 200px !important; /* controla a altura — pode reduzir se quiser ainda menor */
+  margin-left: 200px;
+}

@@ -25,9 +25,16 @@ const statProfit = document.getElementById("stat-profit");
 const statWinrate = document.getElementById("stat-winrate");
 const statTotal = document.getElementById("stat-total");
 const statAvg = document.getElementById("stat-avg");
+const initialBank = document.getElementById("initial-bank");
+const stopWin = document.getElementById("stop-win");
 
 const importCSVInput = document.getElementById("importCSV");
 
+const salvarBancaBtn = document.getElementById("salvarBancaBtn");
+const bancaInicialInput = document.getElementById("bancaInicial");
+const metaDiariaInput = document.getElementById("metaDiaria");
+
+let bancaInicialMesInformada = false
 
 let chartProfit, chartWDL, chartShift;
 let dbInstance;
@@ -80,6 +87,7 @@ function initDB() {
   request.onsuccess = (event) => {
     dbInstance = event.target.result;
     carregarOperacoes();
+    pegarDadosBanca();
   };
   request.onerror = (event) => console.error("Erro IndexedDB:", event.target.error);
 }
@@ -102,6 +110,7 @@ auth.onAuthStateChanged(user => {
 function salvarOperacao(op) {
   const user = auth.currentUser;
   if (!user) return alert("Faça login primeiro");
+  if (!bancaInicialMesInformada) return alert("É necessário informa a banca inicial para poder cadastrar!")
 
   db.collection("operations").add({
     ...op,
@@ -166,6 +175,7 @@ function applyFilters() {
 // TABELA
 // ========================
 function renderTable() {
+  pegarDadosBanca()
   const tbody = document.querySelector("#opsTable tbody");
   tbody.innerHTML = "";
 
@@ -179,7 +189,13 @@ function renderTable() {
   const pagedOps = ops.slice(start, end);
 
   pagedOps.forEach(op => {
-    const corStatus = op.status.toLowerCase() == 'derrota' ? 'red' : 'green';
+    const cores = {
+      derrota: 'red',
+      vitoria: 'green',
+      empate: 'yellow'
+    }
+    let corStatus = cores[op.status.toLowerCase()]
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${op.data}</td>
@@ -232,6 +248,36 @@ function atualizarEstatisticas() {
   statWinrate.textContent = total ? `${((wins / total) * 100).toFixed(1)}%` : "0%";
   statTotal.textContent = total;
   statAvg.textContent = `R$ ${avg.toFixed(2)}`;
+}
+
+// function formatacaoDataPegarBanca() {
+//   const dataAtual = new Date()
+//   let mes = dataAtual.getMonth() + 1
+//   mes = mes < 10 ? `0${mes}` : mes
+//   const ano = dataAtual.getFullYear()
+//   const formatacao = `${ano}-${mes}`
+//   return formatacao
+// }
+
+function pegarDadosBanca() {
+  const formatacao = new Date().toISOString().slice(0, 7);
+
+  const user = auth.currentUser;
+  if (!user) return;
+  db.collection("bancas").where("userId", "==", user.uid).where("mes", "==", formatacao).get()
+    .then(snapshot => {
+      const snap = snapshot.docs[0]
+      if (typeof (snap) == 'undefined') {
+        alert("banca ainda não informada\ninforme para poder cadastrar as operações!")
+        return
+      }
+
+      const doc = snap.data()
+      const bancaInicial = parseFloat(doc.bancaInicial).toFixed(2)
+
+      initialBank.innerText = `R$ ${bancaInicial}`
+      stopWin.innerText = `R$ ${doc.valorMetaDiaria}`
+    });
 }
 
 function atualizarGraficoLucro() {
@@ -306,11 +352,77 @@ function atualizarGraficoTurno() {
   });
 }
 
+function atualizarGraficoMeta() {
+  const ctx = document.getElementById("chart-meta").getContext("2d");
+  const ops = applyFilters();
+
+  const lucroPorDia = {};
+
+  ops.forEach(op => {
+    if (!lucroPorDia[op.data]) lucroPorDia[op.data] = 0;
+    lucroPorDia[op.data] += op.resultado;
+  });
+
+  const dias = Object.keys(lucroPorDia).sort();
+  const lucros = dias.map(d => Number(lucroPorDia[d].toFixed(2)));
+
+  // Pegando meta do elemento DOM
+  const metaTexto = stopWin.textContent.replace("R$ ", "").replace(",", ".");
+  const metaDiaria = parseFloat(metaTexto) || 50;
+
+  if (window.chartMeta) window.chartMeta.destroy();
+
+  window.chartMeta = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dias,
+      datasets: [
+        {
+          label: 'Lucro do Dia',
+          data: lucros,
+          borderColor: '#60a5fa',
+          backgroundColor: 'rgba(96, 165, 250, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#60a5fa',
+        },
+        {
+          label: 'Meta Diária',
+          data: Array(dias.length).fill(metaDiaria),
+          borderColor: '#f87171',
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#e6f0f6'
+          }
+        }
+      }
+    }
+  });
+}
+
+
 function atualizarTudo() {
   atualizarEstatisticas();
   atualizarGraficoLucro();
   atualizarGraficoWDL();
   atualizarGraficoTurno();
+  atualizarGraficoMeta();
 }
 
 // ========================
@@ -455,4 +567,51 @@ importCSVInput.addEventListener("change", async (e) => {
   importCSVInput.value = "";
   carregarOperacoes();
   alert("CSV importado com sucesso!");
+});
+
+// Função para salvar no Firebase
+salvarBancaBtn.addEventListener("click", async () => {
+  const bancaInicial = parseFloat(bancaInicialInput.value);
+  const metaDiaria = parseFloat(metaDiariaInput.value);
+
+  if (!bancaInicial || !metaDiaria) {
+    alert("Preencha os dois campos corretamente!");
+    return;
+  }
+
+  try {
+    const userId = firebase.auth().currentUser.uid; // pega o usuário logado
+    const mesAtual = new Date().toISOString().slice(0, 7); // formato YYYY-MM (mês atual)
+    let bancaJaCadastrada = false
+
+    await firebase.firestore().collection("bancas").where('mes', '==', mesAtual).get().then(snapshot => {
+      if (typeof (snapshot.docs[0]) != 'undefined') bancaJaCadastrada = true
+    });
+
+    if (bancaJaCadastrada) {
+      alert("Banca já cadastrada")
+      return
+    }
+
+    const valorMetaDiaria = (parseFloat(bancaInicial) * (metaDiaria / 100)).toFixed(2)
+
+    await firebase.firestore().collection("bancas").add({
+      mes: mesAtual,
+      bancaInicial,
+      metaDiaria,
+      valorMetaDiaria,
+      userId
+    });
+
+    bancaInicialMesInformada = true
+
+
+    alert("Banca inicial salva com sucesso!");
+    pegarDadosBanca();
+    bancaInicialInput.value = ''
+    metaDiariaInput.value = ''
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao salvar a banca.");
+  }
 });

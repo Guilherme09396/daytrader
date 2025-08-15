@@ -15,6 +15,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+
 </head>
 
 <body>
@@ -23,7 +26,7 @@
       <div class="brand">
         <div class="logo">DT</div>
         <div>
-          <h1>DayTarde</h1>
+          <h1>DayTrader</h1>
           <p class="tag">Registro e análise de operações — estilo profissional</p>
         </div>
       </div>
@@ -40,6 +43,20 @@
 
     <main class="grid">
       <aside class="panel">
+        <div class="card" id="bancaCard">
+          <h2>Banca Inicial do Mês</h2>
+          <div class="form-group">
+            <label for="bancaInicial">Banca Inicial (R$)</label>
+            <input type="number" id="bancaInicial" placeholder="Ex: 500">
+          </div>
+          <div class="form-group">
+            <label for="metaDiaria">Meta diária (%)</label>
+            <input type="number" id="metaDiaria" placeholder="Ex: 10">
+          </div>
+          <div class="actions">
+            <button class="btn primary" id="salvarBancaBtn">Salvar Banca</button>
+          </div>
+        </div>
         <div class="card card-form">
           <h2>Nova Operação</h2>
           <form id="entryForm" autocomplete="off">
@@ -137,6 +154,14 @@
       <section class="content">
         <div class="cards-row">
           <div class="stat card">
+            <small>Banca inicial do mês</small>
+            <strong id="initial-bank">R$ 0,00</strong>
+          </div>
+          <div class="stat card">
+            <small>Meta diária</small>
+            <strong id="stop-win">R$ 0,00</strong>
+          </div>
+          <div class="stat card">
             <small>Total Lucro</small>
             <strong id="stat-profit">R$ 0,00</strong>
           </div>
@@ -154,22 +179,31 @@
           </div>
         </div>
 
-        <div class="card card-charts">
-          <div class="charts-grid">
-            <div class="chart-box">
+        <div class="swiper card card-charts">
+          <div class="swiper-wrapper">
+            <div class="swiper-slide chart-box">
               <h4>Lucro por dia</h4>
               <canvas id="chart-profit"></canvas>
             </div>
-            <div class="chart-box">
+            <div class="swiper-slide chart-box">
               <h4>Vitórias / Derrotas</h4>
               <canvas id="chart-wdl"></canvas>
             </div>
-            <div class="chart-box">
+            <div class="swiper-slide chart-box">
               <h4>Desempenho por turno</h4>
               <canvas id="chart-shift"></canvas>
             </div>
+            <div class="swiper-slide chart-box">
+              <h4>Meta Diária vs Lucro</h4>
+              <canvas id="chart-meta"></canvas>
+            </div>
           </div>
+
+          <!-- Botões de navegação -->
+          <div class="swiper-button-prev"></div>
+          <div class="swiper-button-next"></div>
         </div>
+
 
         <div class="card card-table">
           <div id="pagination" class="pagination"></div>
@@ -204,7 +238,7 @@
     </main>
 
     <footer class="app-footer">
-      <small>DayTarde • Painel local • Dados no storage do navegador</small>
+      <small>DayTrader • Painel local • Dados no storage do navegador</small>
     </footer>
   </div>
 
@@ -222,6 +256,18 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
   <script src="script.js" defer></script>
+
+  <script>
+    const swiper = new Swiper('.swiper', {
+      loop: true,
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev'
+      },
+      spaceBetween: 30
+    });
+  </script>
+
 
   <script>
     if ("serviceWorker" in navigator) {
